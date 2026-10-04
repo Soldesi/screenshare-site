@@ -22,8 +22,19 @@ export class SignalingClient {
 
   connect(roomId: string, role: Role): Promise<void> {
     return new Promise((resolve, reject) => {
-      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      const socketUrl = `${protocol}://${window.location.host}/signal?room=${encodeURIComponent(roomId)}&role=${role}`;
+const signalBase = (import.meta.env.VITE_SIGNAL_URL as string | undefined)?.trim();
+
+if (!signalBase) {
+  reject(new Error('VITE_SIGNAL_URL não está configurada.'));
+  return;
+}
+
+const normalizedBase = signalBase.replace(/\/$/, '');
+const websocketBase = normalizedBase
+  .replace(/^https:/, 'wss:')
+  .replace(/^http:/, 'ws:');
+
+const socketUrl = `${websocketBase}/signal?room=${encodeURIComponent(roomId)}&role=${role}`;
       const socket = new WebSocket(socketUrl);
       this.socket = socket;
 
