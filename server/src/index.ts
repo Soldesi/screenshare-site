@@ -154,6 +154,6 @@ server.on('upgrade', (request, socket, head) => {
   wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
 });
 
-server.listen(PORT, () => {
-  console.log(`ScreenShare server rodando em http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`ScreenShare server rodando na porta ${PORT}`);
 });
