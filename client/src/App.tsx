@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { SignalingMessage } from './types';
@@ -36,14 +36,13 @@ function HomePage() {
     <MainLayout>
       <section className="hero-grid">
         <div className="hero-copy">
-          <span className="eyebrow">WEBRTC • TEMPO REAL • ATÉ 60 FPS</span>
-          <h1>Compartilhe sua tela. Mande o link. Pronto.</h1>
+          <span className="eyebrow">COMPARTILHE SUA TELA EM TEMPO REAL • ATÉ 60 FPS</span>
+          <h1>Compartilhe sua tela. Mande o codigo da sala. Pronto.</h1>
           <p>
             Uma sala leve para transmitir sua tela diretamente para quem tiver o link, sem gravação e sem instalar programa.
           </p>
           <div className="hero-actions">
             <button className="button primary" onClick={createRoom}>Criar transmissão</button>
-            <a className="button secondary" href="#como-funciona">Como funciona</a>
           </div>
         </div>
 
@@ -109,8 +108,6 @@ function HostPage() {
   const [copied, setCopied] = useState(false);
   const [started, setStarted] = useState(false);
   const [error, setError] = useState('');
-
-  const watchUrl = useMemo(() => `${window.location.origin}/watch/${roomId}`, [roomId]);
 
   useEffect(() => {
     let alive = true;
@@ -251,10 +248,14 @@ function HostPage() {
     if (goHome) navigate('/');
   }
 
-  async function copyLink() {
-    await navigator.clipboard.writeText(watchUrl);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(roomId);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setError('Não foi possível copiar. Selecione o código e copie manualmente.');
+    }
   }
 
   return (
@@ -283,10 +284,10 @@ function HostPage() {
         </section>
 
         <aside className="share-panel">
-          <span className="eyebrow">LINK DA SALA</span>
-          <h2>Envie este link para quem vai assistir</h2>
-          <div className="link-box">{watchUrl}</div>
-          <button className="button primary full" onClick={copyLink}>{copied ? 'Link copiado ✓' : 'Copiar link'}</button>
+          <span className="eyebrow">CÓDIGO DA SALA</span>
+          <h2>Envie este código para quem vai assistir</h2>
+          <div className="link-box">{roomId}</div>
+          <button className="button primary full" onClick={copyCode}>{copied ? 'Código copiado ✓' : 'Copiar código'}</button>
           <button className="button danger full" onClick={() => endBroadcast(true)}>Encerrar transmissão</button>
           <Link className="back-link" to="/">← Voltar para o início</Link>
         </aside>
@@ -453,13 +454,13 @@ function MainLayout({ children, compact = false }: { children: ReactNode; compac
     <div className="app-shell">
       <header className="topbar">
         <Link className="brand" to="/">
-          <span className="brand-mark">S</span>
+          <img className="brand-logo" src="/logo.png" alt="" />
           <span>ScreenShare</span>
         </Link>
         {location.pathname !== '/' && <Link className="header-link" to="/">Início</Link>}
       </header>
       <main className={compact ? 'page compact-page' : 'page'}>{children}</main>
-      <footer className="footer">Compartilhamento de tela em tempo real • WebRTC</footer>
+      <footer className="footer">Compartilhamento de tela em tempo real</footer>
     </div>
   );
 }
