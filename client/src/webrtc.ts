@@ -22,19 +22,19 @@ export class SignalingClient {
 
   connect(roomId: string, role: Role): Promise<void> {
     return new Promise((resolve, reject) => {
-const signalBase = (import.meta.env.VITE_SIGNAL_URL as string | undefined)?.trim();
+      const signalBase = (import.meta.env.VITE_SIGNAL_URL as string | undefined)?.trim();
 
-if (!signalBase) {
-  reject(new Error('VITE_SIGNAL_URL não está configurada.'));
-  return;
-}
+      if (!signalBase) {
+        reject(new Error('VITE_SIGNAL_URL não está configurada.'));
+        return;
+      }
 
-const normalizedBase = signalBase.replace(/\/$/, '');
-const websocketBase = normalizedBase
-  .replace(/^https:/, 'wss:')
-  .replace(/^http:/, 'ws:');
+      const normalizedBase = signalBase.replace(/\/$/, '');
+      const websocketBase = normalizedBase
+        .replace(/^https:/, 'wss:')
+        .replace(/^http:/, 'ws:');
 
-const socketUrl = `${websocketBase}/signal?room=${encodeURIComponent(roomId)}&role=${role}`;
+      const socketUrl = `${websocketBase}/signal?room=${encodeURIComponent(roomId)}&role=${role}`;
       const socket = new WebSocket(socketUrl);
       this.socket = socket;
 
@@ -71,6 +71,28 @@ const socketUrl = `${websocketBase}/signal?room=${encodeURIComponent(roomId)}&ro
   close(): void {
     this.socket?.close();
     this.socket = null;
+  }
+}
+
+/**
+ * Favorece a taxa de quadros, com um teto de bitrate para o vídeo.
+ * O navegador e a conexão ainda determinam o FPS real.
+ */
+export async function configureVideoSender(sender: RTCRtpSender): Promise<void> {
+  try {
+    const parameters = sender.getParameters();
+
+    if (!parameters.encodings || parameters.encodings.length === 0) {
+      parameters.encodings = [{}];
+    }
+
+    parameters.encodings[0].maxBitrate = 8_000_000;
+    parameters.encodings[0].maxFramerate = 60;
+    parameters.degradationPreference = 'maintain-framerate';
+
+    await sender.setParameters(parameters);
+  } catch (error) {
+    console.warn('Não foi possível aplicar todos os ajustes de vídeo:', error);
   }
 }
 

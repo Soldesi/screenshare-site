@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Link, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import type { SignalingMessage } from './types';
-import { createPeerConnection, SignalingClient } from './webrtc';
+import { configureVideoSender, createPeerConnection, SignalingClient } from './webrtc';
 
 const FRAME_RATE = 60;
 
@@ -123,8 +123,20 @@ function HostPage() {
           video: {
             frameRate: { ideal: FRAME_RATE, max: FRAME_RATE },
           },
-          audio: false,
+          audio: true,
         });
+
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.contentHint = 'motion';
+          try {
+            await videoTrack.applyConstraints({
+              frameRate: { ideal: FRAME_RATE, max: FRAME_RATE },
+            });
+          } catch {
+            // Mantém a transmissão caso o navegador não aceite ajustes adicionais.
+          }
+        }
 
         if (!alive) {
           stream.getTracks().forEach((track) => track.stop());
@@ -194,7 +206,12 @@ function HostPage() {
         },
       );
       peersRef.current.set(message.clientId, peer);
-      streamRef.current.getTracks().forEach((track) => peer.addTrack(track, streamRef.current!));
+      streamRef.current.getTracks().forEach((track) => {
+        const sender = peer.addTrack(track, streamRef.current!);
+        if (track.kind === 'video') {
+          void configureVideoSender(sender);
+        }
+      });
       const offer = await peer.createOffer({ offerToReceiveVideo: false, offerToReceiveAudio: false });
       await peer.setLocalDescription(offer);
       signalRef.current?.send({
@@ -426,7 +443,7 @@ function ViewerPage() {
 
       <section className="viewer-stage">
         <div className="viewer-video-wrap">
-          <video ref={videoRef} autoPlay playsInline className="viewer-video" />
+          <video ref={videoRef} autoPlay controls playsInline className="viewer-video" />
           {status !== 'Ao vivo' && (
             <div className="viewer-overlay">
               <div className="spinner" />
